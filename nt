@@ -1,0 +1,732 @@
+<?php
+
+    session_start();
+
+
+if(isset($_POST['login_btn'])) {
+    // Including Database connection...
+    include $_SERVER['DOCUMENT_ROOT']."/emart/dbh.inc.php";
+    // Capturing user Details from Login form...
+    $uname = escaepD($conn, $_POST['uname']);
+    $pwd = escaepD($conn, $_POST['pwd']);
+    if (empty($uname) || empty($pwd)) {
+        // If Input fields are Empty Prompt User...
+        header("Location: ../login.php?login=empty");
+        exit();
+        
+    } else {
+        // Check if User Exists in Database...
+        $sqlChk = mysqli_query($conn, "SELECT * FROM systemusertb WHERE userName='$uname'");
+        $resultCheck = mysqli_num_rows($sqlChk);
+        // If No User is found in Database Prompt Error Message...
+        if ($resultCheck < 1) {
+            header("Location: ../login.php?login=error:Username");
+            exit();
+        } else {
+            if ($row = mysqli_fetch_assoc($sqlChk)) {
+                // Checking Password
+                $hashedPwdCheck = password_verify($pwd, $row['userPassword']);
+                if ($hashedPwdCheck == false) {
+                    header("Location: ../login.php?login=error:Password");
+                    exit();
+                } else if ($hashedPwdCheck == true) {
+                    // Holding user Details in Session
+                    $_SESSION['login']=$uname;
+                    $_SESSION['userId']=$row['userId'];
+                    $_SESSION['userFirstName']=$row['userFirstName'];
+                    $_SESSION['userLastName']=$row['userLastName'];
+                    $_SESSION['userNo']=$row['userNo'];
+                    $_SESSION['selectedRole']=$row['selectedRole'];
+                    
+                    header("Location: ../index.php?login=success");
+                    exit();
+                    
+                }
+            }
+        }
+    }
+} else {
+    header("Location: ../login.php?login=error:login");
+    exit();
+}
+
+
+
+
+
+
+                        <!-- Order Item Modal -->
+                        <div class="modal fade" id="addToCart" tabindex="-1" role="dialog"
+                            aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+                                <div class="modal-content modal-md">
+                                    <div class="modal-header modal-md">
+                                        <h5 class="modal-title text-primary" id="exampleModalLabel"
+                                            style="font-weight:bold;">SCAN/SEARCH BY ITEM NAME</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form class="form-body" action="" method="POST" id="new_category_form"
+                                            name="new_category_form" enctype="multipart/form-data">
+                                            <div class="form-body">
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <div class="input-group form-group">
+                                                            <div class="input-group-prepend">
+                                                                <span
+                                                                    class="input-group-text border-0 custom-shadow custom-radius"
+                                                                    id="inputGroup-sizing-default">Product Code</span>
+                                                            </div>
+                                                            <input type="text"
+                                                                class="form-control border-1 custom-shadow custom-radius"
+                                                                id="proCode" name="proCode">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <div class="input-group form-group">
+                                                            <div class="input-group-prepend">
+                                                                <span
+                                                                    class="input-group-text border-0 custom-shadow custom-radius"
+                                                                    id="inputGroup-sizing-default">Product
+                                                                    Name</span>
+                                                            </div>
+                                                            <input type="text"
+                                                                class="form-control border-1 custom-shadow custom-radius"
+                                                                id="prodName" name="prodName">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-actions">
+                                                <div class="text-right">
+                                                    <button type="button" class="btn btn-outline-danger"
+                                                        data-dismiss="modal">Close</button>
+                                                    <button type="reset"
+                                                        class="btn btn-outline-secondary">Reset</button>
+                                                    <button type="submit" class="btn btn-info" id="addToCart"
+                                                        name="addToCart">Add To Cart</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+addToCart
+<!-- Order Cart Table -->
+                        <div class="pl-4 mb-5">
+                            <div class="table-responsive">
+                                <table class="table no-wrap v-middle mb-0 cat-thead">
+                                    <thead>
+                                        <tr class="border-0">
+                                            <th class="border-0 font-14 font-weight-medium text-muted">Item Name
+                                            </th>
+                                            <th class="border-0 font-14 font-weight-medium text-muted px-2">Price
+                                            </th>
+                                            <th class="border-0 font-14 font-weight-medium text-muted">Quantity</th>
+                                            <th class="border-0 font-14 font-weight-medium text-muted text-center">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="cat-tbody" id="cat-tbody">
+                                        <tr class="tb-row" id="tb-row">
+                                            <td class="border-top-0 px-2 py-4">
+                                                <div class="d-flex no-block align-items-center">
+                                                    <div class="mr-3"><img
+                                                            src="/emart/src/assets/images/users/widget-table-pic1.jpg"
+                                                            alt="user" class="rounded-circle" width="45" height="45" />
+                                                    </div>
+                                                    <div class="">
+                                                        <h5 class="text-dark mb-0 font-16 font-weight-medium">Hanna
+                                                            Gover</h5>
+                                                        <span class="text-muted font-14">hgover@gmail.com</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="border-top-0 text-muted px-2 py-4 font-14">Elite Admin</td>
+                                            <td class="border-top-0 px-2 py-4">
+                                                <div class="popover-icon">
+                                                    <a class="btn btn-primary rounded-circle btn-circle font-12"
+                                                        href="javascript:void(0)">DS</a>
+                                                    <a class="btn btn-danger rounded-circle btn-circle font-12 popover-item"
+                                                        href="javascript:void(0)">SS</a>
+                                                    <a class="btn btn-cyan rounded-circle btn-circle font-12 popover-item"
+                                                        href="javascript:void(0)">RP</a>
+                                                    <a class="btn btn-success text-white rounded-circle btn-circle font-20"
+                                                        href="javascript:void(0)">+</a>
+                                                </div>
+                                            </td>
+                                            <td class="border-top-0 text-center px-2 py-4"><button type="button"
+                                                    class="btn btn-danger removeItem btn-sm" data-placement="top"
+                                                    title="Remove Item" id="" Tooltip on top><i
+                                                        class="fas fa-trash-alt"></i></button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+
+
+
+
+
+
+<div class="form-body">
+                                <form class="form-body" action="" method="POST" id="cart_form" name="cart_form"
+                                    enctype="multipart/form-data">
+                                    <div class="row">
+                                        <div class="col">
+                                            <div class="form-group">
+                                                <label for="itemName">Product</label>
+                                                <input type="text"
+                                                    class="form-control border-1 custom-shadow custom-radius"
+                                                    id="itemName" name="itemName">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="form-group">
+                                                <label for="itemPrice">Price</label>
+                                                <input type="text"
+                                                    class="form-control border-1 custom-shadow custom-radius"
+                                                    id="itemPrice" name="itemPrice">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="form-group">
+                                                <label for="itemPrice">Quantity</label>
+                                                <input type="number"
+                                                    class="form-control border-1 custom-shadow custom-radius"
+                                                    id="itemQuantity" name="itemQuantity">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="form-group">
+                                                <label for="itemPrice">Total</label>
+                                                <input type="number"
+                                                    class="form-control border-1 custom-shadow custom-radius"
+                                                    id="totalQuantity" name="totalQuantity">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <ul class="list-inline text-center mt-4 mb-0">
+                                        <li class="list-inline-item text-loud font-italic">ITEM TOTAL: <span
+                                                id="total"></span></li>
+                                        <br>
+                                        <li class="list-inline-item text-bold font-italic">PRICE TOTAL: <span
+                                                id="total"></span>
+                                        </li>
+                                    </ul>
+                                    <div class="form-actions">
+                                        <div class="list-inline text-center mt-4 mb-0">
+                                            <button type="button" id="paymnt_modal_btn" class="btn btn-info"
+                                                data-toggle="modal" data-target="#makePaymentModal">
+                                                Make Purchase
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+
+
+
+
+
+
+///// Function for Fetching Prodruct by Scanned Code
+    $("#addToCart").on("click", () => {
+        //// Selectors
+        // const scannedItem = document.querySelector('.scanned-item');
+        // const addItemToCart = document.querySelector('.add-item');
+        // const tbMain = document.querySelector('.cat-tb');
+        const tbMainHead = document.querySelector('.cat-thead');
+        const tbProduct = document.querySelector('.th-product');
+        const tbPrice = document.querySelector('.th-price');
+        const tbQuantity = document.querySelector('.th-quantity');
+        const tbTotal = document.querySelector('.th-total');
+        const tbActions = document.querySelector('.th-actions');
+        const tbMainBody = document.querySelector('.cat-tbody');
+        const tbRowData = document.querySelector('.tb-row');
+        //// 
+        var scanedItem = $("#scanedItem").val(),
+            scanned = "insert";
+
+        $.post("/emart/src/processphp/fetch_product.php", {
+            scanedItem: scanedItem,
+            scanned: scanned
+        }, function (da) {
+            console.log(da);
+            var da = JSON.parse(da);
+            // console.log("Clicked");
+
+            // Creating Table Row
+            const tbRow = document.createElement('tr');
+            tbRow.classList.add('tb-row');
+            // Creatiing Table Data or Content (Product Header Column)
+            const tbData = document.createElement('td');
+            tbData.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+            tbRow.appendChild(tbData);
+            // Creating DIV for Table Contents
+            const tbContent = document.createElement('div');
+            tbContent.classList.add('d-flex', 'no-block', 'align-items-center');
+            tbContent.innerText = da.results.productName;
+            tbData.appendChild(tbContent);
+            tbProduct.appendChild(tbData);
+
+            // Creatiing Table Data or Content (Price Header Column)
+            const tbData1 = document.createElement('td');
+            tbData1.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+            tbRow.appendChild(tbData1);
+            // Creating DIV for Table Contents
+            const tbContent1 = document.createElement('div');
+            tbContent1.classList.add('d-flex', 'no-block', 'align-items-center');
+            tbContent1.innerText = da.results.productCost;
+            tbData1.appendChild(tbContent1);
+            tbPrice.appendChild(tbData1);
+
+            // Creatiing Table Data or Content (Quantity Header Column)
+            const tbData2 = document.createElement('td');
+            tbData2.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+            tbRow.appendChild(tbData2);
+            // Creating DIV for Table Contents
+            const tbContent2 = document.createElement('div');
+            tbContent2.classList.add('d-flex', 'no-block', 'align-items-center');
+            tbContent2.innerText = da.results.productQuantity;
+            tbData2.appendChild(tbContent2);
+            tbQuantity.appendChild(tbData2);
+
+            // Creatiing Table Data or Content (Total Header Column)
+            const tbData3 = document.createElement('td');
+            tbData3.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+            tbRow.appendChild(tbData3);
+            // Creating DIV for Table Contents
+            const tbContent3 = document.createElement('div');
+            tbContent3.classList.add('d-flex', 'no-block', 'align-items-center');
+            tbContent3.innerText = "Hey";
+            tbData3.appendChild(tbContent3);
+            tbTotal.appendChild(tbData3);
+
+            // Adding the Remove Button
+            const rmBtn = document.createElement('button');
+            rmBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            rmBtn.classList.add('btn', 'btn-danger', 'removeItem', 'btn-sm');
+            // Append to Table Body
+            tbRow.appendChild(rmBtn);
+            // Append to Table Body
+            tbActions.appendChild(tbRow);
+            // Append table Data to table Row
+            tbRowData.appendChild(tbRow);
+            // // Append to Table Body
+            // tbMainBody.appendChild(tbRowData);
+            // // Append to Table Body
+            // tbMainHead.appendChild(tbMainBody);
+        });
+
+    });
+
+
+
+
+            pattern = /[^0-9.-]+/g,
+            p = da.results.productCost,
+            q = da.results.productQuantity,
+            r = parseFloat(p.replace(pattern, "")) * parseFloat(q.replace(pattern, "")),
+            t = r.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+
+
+
+
+-----------------------------------------------------------------------------------------------------
+
+
+
+let code = "";
+    let reading = false;
+    document.addEventListener('keypress', e=>{
+        $('#scanNote').focus();
+      //usually scanners throw an 'Enter' key at the end of read
+       if (e.keyCode===13){
+              if(code.length>10){
+                console.log(code);
+                /// So i Moved ma Ajax call here                
+                
+             }
+        }else{
+             code+=e.key;//while this is not an 'enter' it stores the every key
+        }
+    });
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+
+
+    let barcodeRead = '';
+    let readingBarcode = false;
+
+    let handleKeyPress = (e) => {
+
+        console.log("suckit");
+        console.log(e);
+
+        if (e.keyCode === 2) {
+            // Start of barcode
+            readingBarcode = true;
+            e.preventDefault();
+            return;
+        }
+
+        if (readingBarcode) {
+            e.preventDefault();
+
+            if (e.keyCode === 13) { // Enter
+
+                console.log("fuckit");
+
+                readingBarcode = false;
+                const evt = $.Event('barcodeScan');
+                evt.state = {
+                    type: barcodeRead.substr(0, 1),
+                    code: barcodeRead.substr(1),
+                };
+                $(window).trigger(evt);
+                barcodeRead = '';
+                return;
+            }
+
+            // Append the next key to the end of the list
+            barcodeRead += e.key;
+        }
+    }
+
+    $(window).bind('keypress', handleKeyPress);
+
+
+
+
+    $(window).bind('barcodeScan', (e) => {
+        if (e.state.type !== 'E') {
+            alert('Please scan your employee badge only!');
+        } else {
+            $('.scanned-item').val(e.state.code);
+        }
+    });
+
+
+    ------------------------------------------------------------------------------------
+
+
+
+    //// Selectors
+const scannedItem = document.querySelector('.scanned-item');
+const addItemToCart = document.querySelector('.add-item');
+const tbMainHead = document.querySelector('.cat-thead');
+const tbMainBody = document.querySelector('.cat-tbody');
+const tbRowData = document.querySelector('.tb-row');
+
+
+// Event Listeners
+addItemToCart.addEventListener('click', appendItem);
+
+
+// Functions
+function appendItem(e) {
+
+    e.preventDefault();
+    console.log("Clicked");
+    // Creating Table Row
+    const tbRow = document.createElement('tr');
+    tbRow.classList.add('tb-row');
+    // Creatiing Table Data or Content
+    const tbData = document.createElement('td');
+    tbData.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+    tbRow.appendChild(tbData);
+    // Creating DIV for Table Contents
+    const tbContent = document.createElement('div');
+    tbContent.classList.add('d-flex', 'no-block', 'align-items-center');
+    tbContent.innerText = "Hey";
+    tbData.appendChild(tbContent);
+
+    // Creatiing Table Data or Content
+    const tbData1 = document.createElement('td');
+    tbData1.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+    tbRow.appendChild(tbData1);
+    // Creating DIV for Table Contents
+    const tbContent1 = document.createElement('div');
+    tbContent1.classList.add('d-flex', 'no-block', 'align-items-center');
+    tbContent1.innerText = "Hey";
+    tbData1.appendChild(tbContent1);
+
+    // Creatiing Table Data or Content
+    const tbData2 = document.createElement('td');
+    tbData2.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+    tbRow.appendChild(tbData2);
+    // Creating DIV for Table Contents
+    const tbContent2 = document.createElement('div');
+    tbContent2.classList.add('d-flex', 'no-block', 'align-items-center');
+    tbContent2.innerText = "Hey";
+    tbData2.appendChild(tbContent2);
+
+    // Creatiing Table Data or Content
+    const tbData3 = document.createElement('td');
+    tbData3.classList.add('border-top-0', 'text-muted', 'px-2', 'py-4', 'font-14');
+    tbRow.appendChild(tbData3);
+    // Creating DIV for Table Contents
+    const tbContent3 = document.createElement('div');
+    tbContent3.classList.add('d-flex', 'no-block', 'align-items-center');
+    tbContent3.innerText = "Hey";
+    tbData3.appendChild(tbContent3);
+
+    // Adding the Remove Button
+    const rmBtn = document.createElement('button');
+    rmBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+    rmBtn.classList.add('btn', 'btn-danger', 'removeItem', 'btn-sm');
+    // Append to Table Body
+    tbRow.appendChild(rmBtn);
+    // Append to Table Body
+    tbRowData.appendChild(tbRow);
+    // Append to Table Body
+    tbMainBody.appendChild(tbRowData);
+    // Append to Table Body
+    tbMainHead.appendChild(tbMainBody);
+
+}
+
+
+
+
+------------------------------------------------------------------------
+
+
+
+
+
+
+
+        
+                        // Fetched Product From Database
+                        var productsFromDb = da.results;
+        
+                        var productDbCode = productsFromDb.productBcode;
+        
+                        var localArray = add(items, productDbCode, productsFromDb);
+        
+                        var tr = buildTemp(localArray);
+        
+                        $("#cat-tbody").html(tr);
+
+
+
+
+
+<div class="row">
+                            <div class="col-md-8">
+                                <div class="input-group form-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text border-0 custom-shadow custom-radius"
+                                            id="inputGroup-sizing-default">
+                                            Scan Item Here</span>
+                                    </div>
+                                    <input type="text"
+                                        class="form-control border-1 custom-shadow custom-radius scanned-item"
+                                        id="scanedItem" name="scanedItem">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="input-group form-group">
+                                    <button type="button" class="btn btn-info add-item btn-md" data-placement="top"
+                                        title="Add Item To Cart" id="addToCart" name="addToCart" Tooltip on top><i
+                                            class="fas fa-plus-square"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+<?php
+
+
+    include $_SERVER['DOCUMENT_ROOT'].'/emart/dbh.inc.php';
+
+    if (isset($_POST['amountPaid']) && !empty($_POST['amountPaid'])) {
+        
+        $custName = escaepD($conn, $_POST['custName']);
+        $custNum = escaepD($conn, $_POST['custNum']);
+        $processedBy = escaepD($conn, $_POST['processedBy']);
+        $billDate = escaepD($conn, $_POST['billDate']);
+        $amountPaid = escaepD($conn, $_POST['amountPaid']);
+        $balance = escaepD($conn, $_POST['balance']);
+        $totalItemPrice = escaepD($conn, $_POST['totalItemPrice']);
+        $totalItemQuantity = escaepD($conn, $_POST['totalItemQuantity']);
+        $discount = escaepD($conn, $_POST['discount']);
+        $vat = escaepD($conn, $_POST['vat']);
+        $data = escaepD($conn, $_POST['data']);
+
+        if(mysqli_query($conn, sprintf("INSERT INTO `purchasetb`(`customerName`, `customerNo`, `processedBy`, `billDate`, `amountPaid`, `balance`, `totalItemPrice`, `totalItemQuantity`, `discount`, `vat`) VALUES ('%s','%d','%s','%s','%d','%d','%d','%d','%d','%d')", $custName, $custNum, $processedBy, $billDate, $amountPaid, $balance, $totalItemPrice, $totalItemQuantity, $discount, $vat))) {
+
+            for ($i=0; $i < count($_POST['data']); $i++) {
+
+                if ($_POST['data'][$i]['productBcode'] !== "") {
+                    
+                    mysqli_query($conn, sprintf("INSERT INTO `dailyexpense`(`proCode`, `proName`, `proDesc`, `proCate`, `proPrice`, `proCost`, `qtySold`, `qtyLeft`, `processedBy`, `inputDate`) VALUES ('%s','%s','%s','%s','%d','%d','%d','%d','%s','%s')", $_POST['data'][$i]['productBcode'], $_POST['data'][$i]['productName'], $_POST['data'][$i]['productDescription'], $_POST['data'][$i]['productCategory'], $_POST['data'][$i]['totalPrice'], $_POST['data'][$i]['productCost'], $_POST['data'][$i]['bougthQty'], $_POST['data'][$i]['productQuantity'], $processedBy, $billDate));
+                
+                    mysqli_query($conn, "UPDATE `producttb` SET `productQuantity`='".$_POST['data'][$i]['productQuantity']."' WHERE `productBcode`='".$_POST['data'][$i]['productBcode']."'");
+
+                }
+
+            }
+
+            $mk['ermySuc'] = true;
+            $mk['ermyNote'] = "Transaction Completed Successfully!";
+
+        } else {
+            
+            $mk['ermySuc'] = false;
+            $mk['ermyNote'] = "Error: Transaction Incomplete, Please Try Check Well...!";
+
+        }
+
+
+    } else {
+        
+        $mk['ermySuc'] = "data";
+        $mk['ermyNote'] = "Error: No Entry...!";
+
+    }
+
+    echo json_encode($mk);
+
+
+
+overAllSalesPercentage = 
+totalProCost / mainProductCost * 100
+
+overAllQtyPercentage = totalQtySold / newMainProQuantity * 100
+
+overAllQty = newMainProQuantity
+
+overAllQtySold = totalQtySold
+
+overAllStockPrice = mainProductCost
+
+overAllDailySales = totalProCost
+
+
+${r.year}:${r.month}:${r.week}:${r.day}:${r.hour}:${r.minute}
+
+//Cedi Sign
+<span>&#8373;</span>
+
+
+
+$(document).ready(function () {
+        $("#print").on("click", (e) => {
+
+            e.preventDefault();
+
+            // var printForm = new FormData(document.getElementById("receiptForm"));
+            // printForm = [...printForm.entries()];
+            // window.open("http://localhost:1234/emart/src/receipt_pdf.php?receiptform="+btoa(JSON.stringify(printForm)), "_blank");
+
+
+            var mywindow = window.open('', 'PRINT');
+                mywindow.document.write('<html><head><title>Payment Slip</title>');
+                mywindow.document.write('</head><body style="text-align:center;font: Georgia, "Times New Roman", Times, serif;background: #fff;font-size: 22pt;margin:20px auto auto 50px;" >');
+                mywindow.document.write('<header style="text-align:center; white-space:nowrap;overflow:hidden;line-height: 1em;">' +
+                '<p  style="font-size:16pt;white-space:nowrap;overflow:hidden;line-height: 12pt;">Payment Slip</p>' +
+                '<p style="font-size:16pt;white-space:nowrap;overflow:hidden;line-height: 1em;">' + $('.mylabelpaymentheader').html() + '</p>' +
+            '</header>');
+                mywindow.document.write('<content style="text-align:center;">' +
+                '<table style="margin-left: auto;margin-right: auto;border-collapse: collapse;font-size:16pt;">' +
+                    '<tr  style="border:1px solid black"><td  style="border:1px solid black">Name:</td><td  style="border:1px solid black">' + $('.lblName').html() + '</td></tr>' +
+                    '<tr style="border:1px solid black"><td style="border:1px solid black">Address:</td><td style="border:1px solid black">' + $('.lblAddress').html() + '</td></tr>' +
+                    '<tr  style="border:1px solid black"><td  style="border:1px solid black">Meter No:</td><td  style="border:1px solid black">' + $('.lblMeterNo').html() + '</td></tr>' +
+                    '<tr  style="border:1px solid black"><td  style="border:1px solid black">Token:</td><td  style="border:1px solid black">' + $('.lblToken').html() + '</td></tr>' +
+                '</table>'+
+            
+            '</content>' +
+            '<footer>' +
+            '<hr style="margin-top:30pt;margin-bottom:30pt;">' +
+                '<p style="text-align:right;">&copy pdb</p>' +
+            '</footer>'+
+            '');
+                mywindow.document.write('</body></html>');
+                mywindow.document.close(); // necessary for IE >= 10
+                mywindow.focus(); // necessary for IE >= 10*/
+                mywindow.print();
+                mywindow.close();
+                return true;
+
+        });
+    });
+
+
+
+----------------------------RECEIPT TEMPLATE------------------------------------------
+<body>
+        <div class="ticket">
+            <img src="./logo.png" alt="Logo">
+            <p class="centered">RECEIPT EXAMPLE
+                <br>Address line 1
+                <br>Address line 2</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="quantity">Q.</th>
+                        <th class="description">Description</th>
+                        <th class="price">$$</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="quantity">1.00</td>
+                        <td class="description">ARDUINO UNO R3</td>
+                        <td class="price">$25.00</td>
+                    </tr>
+                    <tr>
+                        <td class="quantity">2.00</td>
+                        <td class="description">JAVASCRIPT BOOK</td>
+                        <td class="price">$10.00</td>
+                    </tr>
+                    <tr>
+                        <td class="quantity">1.00</td>
+                        <td class="description">STICKER PACK</td>
+                        <td class="price">$10.00</td>
+                    </tr>
+                    <tr>
+                        <td class="quantity"></td>
+                        <td class="description">TOTAL</td>
+                        <td class="price">$55.00</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="centered">Thanks for your purchase!
+                <br>parzibyte.me/blog</p>
+        </div>
+        <button id="btnPrint" class="hidden-print">Print</button>
+    </body>
+
+
+
+
+getBillNo
+getCustomerName
+getCustomerNo
+getUser
+getDate
+getPaid
+getBalance
+getAmount
+getTotQty
+getDiscount
+getVat
